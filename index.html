@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quark - Roblox AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/lua.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --sidebar-bg: #080808;
+            --accent: #ffffff;
+            --text-main: #e0e0e0;
+            --text-muted: #717171;
+            --border: #1a1a1a;
+            --input-bg: #0d0d0d;
+            --hover-bg: #111111;
+            --font-main: 'Inter', sans-serif;
+            --sidebar-width: 260px;
+            --sidebar-collapsed: 72px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg-dark); color: var(--text-main); font-family: var(--font-main); height: 100vh; overflow: hidden; display: flex; }
+
+        /* Centered Intro Screen */
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease;
+        }
+
+        .intro-container {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .dice-logo-big {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2.5rem auto;
+            position: relative;
+        }
+
+        .shine-effect {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
+            background-size: 200% 200%;
+            animation: shine-move 3s infinite;
+            border-radius: 24px;
+        }
+
+        @keyframes shine-move { 0% { background-position: -200% -200%; } 100% { background-position: 200% 200%; } }
+
+        .typewriter-greet { min-height: 1.5em; font-size: 1.25rem; font-weight: 500; margin-bottom: 2rem; color: #fff; }
+
+        /* Sidebar System */
+        aside {
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            width: var(--sidebar-width);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        aside.collapsed { width: var(--sidebar-collapsed); }
+
+        .sidebar-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-box { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .logo-box:active { transform: scale(0.95); }
+        aside.collapsed .logo-box span { display: none; }
+        aside.collapsed .logo-box { margin: 0 auto; }
+        
+        .sidebar-toggle {
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            transition: opacity 0.3s ease, color 0.2s;
+        }
+        .sidebar-toggle:hover { color: #fff; }
+
+        /* Rule: Fade out toggle when collapsed */
+        aside.collapsed .sidebar-toggle {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sidebar-content {
+            padding: 0 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .sidebar-item:hover { background: var(--hover-bg); color: #fff; }
+        .sidebar-item i { width: 20px; text-align: center; font-size: 1.1rem; }
+
+        aside.collapsed .sidebar-item span { display: none; }
+        aside.collapsed .sidebar-item { justify-content: center; padding: 16px 0; }
+
+        /* Main Area */
+        main { flex: 1; display: flex; flex-direction: column; position: relative; background: radial-gradient(circle at 50% 50%, #080808 0%, #000000 100%); }
+
+        #home-view {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            animation: fadeIn 0.8s ease; text-align: center; padding: 0 20px;
+        }
+
+        .hero-title { font-size: 3.5rem; font-weight: 700; margin-bottom: 1rem; color: #fff; letter-spacing: -1px; }
+        .hero-subtitle { font-size: 1.1rem; color: var(--text-muted); max-width: 500px; line-height: 1.6; }
+
+        /* Mode Selection like Gemini */
+        .mode-container {
+            display: flex;
+            background: #111;
+            padding: 4px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            width: fit-content;
+        }
+
+        .mode-btn {
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-muted);
+        }
+
+        .mode-btn.active { background: #222; color: #fff; }
+        .mode-btn[data-mode="Smart"].active { color: #00ff88; box-shadow: 0 0 15px rgba(0,255,136,0.1); }
+        .mode-btn[data-mode="Pro"].active { color: #ff00ff; box-shadow: 0 0 15px rgba(255,0,255,0.1); }
+        .mode-btn[data-mode="Ultra"].active { color: #00ccff; box-shadow: 0 0 15px rgba(0,204,255,0.1); }
+
+        /* Chat / Input UI */
+        #chat-window { display: none; flex: 1; overflow-y: auto; padding: 3rem 15% 10rem 15%; flex-direction: column; gap: 2.5rem; scroll-behavior: smooth; }
+        
+        .input-bar-container {
+            position: absolute;
+            bottom: 40px; left: 15%; right: 15%;
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 10;
+        }
+
+        .input-box {
+            width: 100%;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 32px;
+            padding: 12px 24px;
+            display: flex; align-items: center; gap: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .input-box:focus-within { border-color: #333; }
+
+        textarea { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-family: var(--font-main); font-size: 1rem; resize: none; max-height: 200px; padding: 4px 0; }
+
+        .send-btn {
+            width: 40px; height: 40px; border-radius: 50%; background: #fff; color: #000; border: none;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            opacity: 0.1; transition: 0.3s; pointer-events: none;
+        }
+        .send-btn.active { opacity: 1; pointer-events: all; transform: scale(1.05); }
+
+        /* Transitions */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Code Styling */
+        .code-block { background: #0a0a0a; border-radius: 16px; border: 1px solid var(--border); margin: 1.5rem 0; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+        .code-top { background: #121212; padding: 10px 18px; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        pre { padding: 1.5rem; overflow-x: auto; font-family: var(--font-code); font-size: 0.9rem; line-height: 1.6; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #333; }
+    </style>
+</head>
+<body>
+
+    <!-- Intro / Auth -->
+    <div id="auth-overlay">
+        <div class="intro-container">
+            <div class="dice-logo-big">
+                <svg viewBox="0 0 100 100" fill="none">
+                    <rect x="10" y="10" width="80" height="80" rx="18" stroke="white" stroke-width="5"/>
+                    <circle cx="50" cy="50" r="8" fill="white"/>
+                    <circle cx="30" cy="30" r="6" fill="white"/>
+                    <circle cx="70" cy="70" r="6" fill="white"/>
+                    <circle cx="30" cy="70" r="6" fill="white"/>
+                    <circle cx="70" cy="30" r="6" fill="white"/>
+                </svg>
+                <div class="shine-effect"></div>
+            </div>
+            <div id="greet-text" class="typewriter-greet"></div>
+            <div id="login-fields" style="opacity: 0; transition: 1s;">
+                <input type="text" id="name-input" placeholder="Enter identity..." 
+                       style="width: 280px; background: #0a0a0a; border: 1px solid #222; color: #fff; padding: 14px 20px; border-radius: 16px; margin-bottom: 1.2rem; outline: none; text-align: center;">
+                <br>
+                <button onclick="doLogin()" style="background: #fff; color: #000; padding: 12px 40px; border-radius: 16px; border: none; font-weight: 700; cursor: pointer; transition: transform 0.2s;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="main-sidebar">
+        <div class="sidebar-header">
+            <div class="logo-box" onclick="handleLogoClick()">
+                <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
+                    <rect x="10" y="10" width="80" height="80" rx="15" stroke="white" stroke-width="8"/>
+                    <circle cx="50" cy="50" r="10" fill="white"/>
+                </svg>
+                <span style="font-weight: 700; letter-spacing: 1px; font-size: 1rem;">QUARK</span>
+            </div>
+            <i class="fa-solid fa-bars-staggered sidebar-toggle" onclick="toggleSidebar()"></i>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="sidebar-item" onclick="newChat()">
+                <i class="fa-solid fa-plus"></i>
+                <span>New Script</span>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding: 10px 0;" id="history-box">
+                <!-- History items -->
+            </div>
+            <div class="sidebar-item" style="border-top: 1px solid var(--border); padding-top: 20px;">
+                <i class="fa-solid fa-circle-user"></i>
+                <span id="user-display">Guest</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main>
+        <!-- Home View -->
+        <div id="home-view">
+            <div style="margin-bottom: 2rem; opacity: 0.8;">
+                <svg width="60" height="60" viewBox="0 0 100 100" fill="none">
+                    <rect x="10" y="10" width="80" height="80" rx="20" stroke="white" stroke-width="4"/>
+                    <circle cx="50" cy="50" r="10" fill="white"/>
+                </svg>
+            </div>
+            <h1 class="hero-title">Quark</h1>
+            <p class="hero-subtitle">The fastest AI script maker for Roblox. Engineered for precision and performance.</p>
+        </div>
+
+        <!-- Chat Output -->
+        <div id="chat-window"></div>
+
+        <!-- Input Bar -->
+        <div class="input-bar-container">
+            <div class="mode-container">
+                <div class="mode-btn active" data-mode="Smart" onclick="setMode('Smart')">Smart</div>
+                <div class="mode-btn" data-mode="Pro" onclick="setMode('Pro')">Pro</div>
+                <div class="mode-btn" data-mode="Ultra" onclick="setMode('Ultra')">Ultra</div>
+            </div>
+            <div class="input-box">
+                <textarea id="prompt-input" placeholder="Type script request..." rows="1" oninput="resizeInput(this)"></textarea>
+                <button class="send-btn" id="send-btn" onclick="sendPrompt()">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </button>
+            </div>
+            <div style="font-size: 0.7rem; color: #444; margin-top: 12px;">Powered by Quark AI Engine</div>
+        </div>
+    </main>
+
+    <script>
+        const apiKey = "";
+        let username = localStorage.getItem('quark_user');
+        let currentMode = "Smart";
+        let isCollapsed = false;
+
+        window.onload = () => {
+            if (username) {
+                document.getElementById('auth-overlay').style.display = 'none';
+                setupUser();
+            } else {
+                runIntro();
+            }
+        };
+
+        function runIntro() {
+            const text = "Quark greets you, elite creator.";
+            let i = 0;
+            const el = document.getElementById('greet-text');
+            const interval = setInterval(() => {
+                el.textContent += text[i];
+                i++;
+                if (i === text.length) {
+                    clearInterval(interval);
+                    document.getElementById('login-fields').style.opacity = '1';
+                }
+            }, 60);
+        }
+
+        function doLogin() {
+            const val = document.getElementById('name-input').value.trim();
+            if (val) {
+                username = val;
+                localStorage.setItem('quark_user', val);
+                document.getElementById('auth-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    setupUser();
+                }, 800);
+            }
+        }
+
+        function setupUser() {
+            document.getElementById('user-display').textContent = username;
+            loadHistory();
+        }
+
+        function toggleSidebar() {
+            isCollapsed = !isCollapsed;
+            const aside = document.getElementById('main-sidebar');
+            aside.classList.toggle('collapsed', isCollapsed);
+        }
+
+        // Expanded logic: Clicking logo un-minimizes if currently collapsed
+        function handleLogoClick() {
+            if (isCollapsed) {
+                toggleSidebar();
+            } else {
+                newChat(); // If already open, just go home
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+            });
+        }
+
+        function resizeInput(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+            document.getElementById('send-btn').classList.toggle('active', el.value.trim().length > 0);
+        }
+
+        function newChat() {
+            document.getElementById('chat-window').style.display = 'none';
+            document.getElementById('home-view').style.display = 'flex';
+            document.getElementById('chat-window').innerHTML = '';
+            document.getElementById('prompt-input').value = '';
+        }
+
+        async function sendPrompt() {
+            const prompt = document.getElementById('prompt-input').value.trim();
+            if (!prompt) return;
+
+            document.getElementById('home-view').style.display = 'none';
+            const chat = document.getElementById('chat-window');
+            chat.style.display = 'flex';
+
+            addMsg('user', prompt);
+            document.getElementById('prompt-input').value = '';
+            resizeInput(document.getElementById('prompt-input'));
+
+            const loading = addLoading();
+            
+            try {
+                const result = await callAI(prompt);
+                loading.remove();
+                addMsg('quark', result, true);
+                saveToHistory(prompt, result);
+            } catch (e) {
+                loading.remove();
+                addMsg('quark', "Connection failed. Please check your network.");
+            }
+        }
+
+        function addMsg(role, content, isScript = false) {
+            const chat = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.gap = '20px';
+            div.style.animation = 'fadeIn 0.5s ease';
+
+            const icon = role === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-bolt-lightning"></i>';
+            
+            div.innerHTML = `
+                <div style="width: 38px; height: 38px; background: #0f0f0f; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #222; flex-shrink: 0;">
+                    ${icon}
+                </div>
+                <div style="flex: 1; color: #ececec; line-height: 1.7;" class="msg-content"></div>
+            `;
+            chat.appendChild(div);
+            const body = div.querySelector('.msg-content');
+
+            if (isScript) {
+                const code = content.replace(/```lua|```/gi, '').trim();
+                const wrapper = document.createElement('div');
+                wrapper.className = 'code-block';
+                wrapper.innerHTML = `
+                    <div class="code-top">
+                        <span style="font-weight:600">LUA</span>
+                        <div style="display:flex; gap: 15px;">
+                            <i class="fa-regular fa-copy" title="Copy" style="cursor:pointer" onclick="copyCode(this)"></i>
+                            <i class="fa-solid fa-download" title="Download" style="cursor:pointer" onclick="dlCode(this)"></i>
+                        </div>
+                    </div>
+                    <pre><code class="language-lua">${code}</code></pre>
+                `;
+                body.appendChild(wrapper);
+                hljs.highlightElement(wrapper.querySelector('code'));
+            } else {
+                typeEffect(body, content);
+            }
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function typeEffect(el, text) {
+            let i = 0;
+            const timer = setInterval(() => {
+                if(i < text.length) {
+                    el.textContent += text[i];
+                    i++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, 8);
+        }
+
+        function addLoading() {
+            const chat = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.innerHTML = `<div style="padding: 10px 0;"><div style="display:flex; gap: 6px;">
+                <div style="width:8px; height:8px; background:#444; border-radius:50%; animation: pulse 1s infinite;"></div>
+                <div style="width:8px; height:8px; background:#444; border-radius:50%; animation: pulse 1s infinite 0.2s;"></div>
+                <div style="width:8px; height:8px; background:#444; border-radius:50%; animation: pulse 1s infinite 0.4s;"></div>
+            </div></div>`;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+            return div;
+        }
+
+        async function callAI(p) {
+            const sys = `You are Quark. Generate ONLY the Roblox Luau code requested. Zero conversational text. Mode: ${currentMode}. Ensure high quality and speed.`;
+            const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: p }] }],
+                    systemInstruction: { parts: [{ text: sys }] }
+                })
+            });
+            const data = await resp.json();
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        function saveToHistory(q, r) {
+            let hist = JSON.parse(localStorage.getItem('quark_hist')) || [];
+            hist.unshift({ q, r, title: q.substring(0, 24) + '...' });
+            localStorage.setItem('quark_hist', JSON.stringify(hist.slice(0, 15)));
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const box = document.getElementById('history-box');
+            box.innerHTML = '';
+            const hist = JSON.parse(localStorage.getItem('quark_hist')) || [];
+            hist.forEach(h => {
+                const item = document.createElement('div');
+                item.className = 'sidebar-item';
+                item.innerHTML = `<i class="fa-regular fa-message"></i> <span>${h.title}</span>`;
+                item.onclick = () => {
+                    newChat();
+                    document.getElementById('home-view').style.display = 'none';
+                    document.getElementById('chat-window').style.display = 'flex';
+                    addMsg('user', h.q);
+                    addMsg('quark', h.r, true);
+                };
+                box.appendChild(item);
+            });
+        }
+
+        function copyCode(btn) {
+            const code = btn.closest('.code-block').querySelector('code').textContent;
+            navigator.clipboard.writeText(code);
+            const original = btn.className;
+            btn.className = 'fa-solid fa-check';
+            setTimeout(() => btn.className = original, 2000);
+        }
+
+        function dlCode(btn) {
+            const code = btn.closest('.code-block').querySelector('code').textContent;
+            const blob = new Blob([code], {type: 'text/plain'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'quark_script.lua';
+            a.click();
+        }
+    </script>
+</body>
+</html>
